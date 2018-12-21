@@ -1,0 +1,148 @@
+import re, csv
+from time import sleep, time
+from random import uniform, randint
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+
+class buybuybuy():
+
+    # deal with picture puzzle for captcha
+    def write_stat(loops, time):
+        with open('stat.csv', 'a', newline='') as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=',',
+                                    quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            spamwriter.writerow([loops, time])
+
+    def check_exists_by_xpath(xpath):
+        try:
+            driver.find_element_by_xpath(xpath)
+        except NoSuchElementException:
+            return False
+        return True
+
+    def wait_between(a, b):
+        rand = uniform(a, b)
+        sleep(rand)
+
+    def dimention(driver):
+        d = int(
+            driver.find_element_by_xpath('//div[@id="rc-imageselect-target"]/table').get_attribute("class")[-1]);
+        return d if d else 3  # dimention is 3 by default
+
+    # ***** main procedure to identify and submit picture solution
+    def solve_images(driver):
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "rc-imageselect-target"))
+        )
+        dim = dimention(driver)
+        # ****************** check if there is a clicked tile ******************
+        if check_exists_by_xpath(
+                '//div[@id="rc-imageselect-target"]/table/tbody/tr/td[@class="rc-imageselect-tileselected"]'):
+            rand2 = 0
+        else:
+            rand2 = 1
+
+        # wait before click on tiles
+        wait_between(0.5, 1.0)
+        # ****************** click on a tile ******************
+        tile1 = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH,
+                                        '//div[@id="rc-imageselect-target"]/table/tbody/tr[{0}]/td[{1}]'.format(
+                                            randint(1, dim), randint(1, dim))))
+        )
+        tile1.click()
+        if (rand2):
+            try:
+                driver.find_element_by_xpath(
+                    '//div[@id="rc-imageselect-target"]/table/tbody/tr[{0}]/td[{1}]'.format(randint(1, dim),
+                                                                                            randint(1,
+                                                                                                    dim))).click()
+            except NoSuchElementException:
+                print('\n\r No Such Element Exception for finding 2nd tile')
+
+    def login(self):
+        self.driver = webdriver.Chrome()
+        self.driver.maximize_window()
+
+        #go to 12306
+        self.driver.get('https://kyfw.12306.cn/otn/resources/login.html')
+        self.driver.implicitly_wait(10)
+        #go to account login
+        elem = self.driver.find_element_by_link_text('账号登录')
+        elem.click()
+        #input username & password
+        elem = self.driver.find_element_by_id('J-userName')
+        elem.send_keys('vsetteacher')
+        elem = self.driver.find_element_by_id('J-password')
+        elem.send_keys('vsetteacher636487')
+
+        elem = self.driver.find_element_by_xpath("//div[@class='lgcode-loading']")
+        while elem.is_displayed():
+            sleep(1)
+
+        sleep(10)
+        elem = self.driver.find_element_by_link_text('立即登录')
+        elem.click()
+
+    def query(self):
+        # select round trip
+
+        WebDriverWait(self.driver,20).until(EC.element_to_be_clickable((By.ID,'J-chepiao')))
+        elem = self.driver.find_element_by_id('J-chepiao')
+        ActionChains(self.driver).move_to_element(elem).click().perform()
+
+        WebDriverWait(self.driver,20).until(EC.element_to_be_clickable((By.LINK_TEXT,'往返')))
+        elem = self.driver.find_element_by_link_text('往返')
+        ActionChains(self.driver).move_to_element(elem).click().perform()
+
+        #input start&target location
+        elem = self.driver.find_element_by_id('fromStationText')
+        elem.click()
+        elem.send_keys('广州东')
+        elem.send_keys(Keys.ENTER)
+        elem = self.driver.find_element_by_id('toStationText')
+        elem.click()
+        elem.send_keys('南昌')
+        elem.send_keys(Keys.ENTER)
+
+        #select date
+        elem = self.driver.find_element_by_id('train_date')
+        elem.click()
+        elem = self.driver.find_element_by_xpath("//div[@class='year']")
+        elem.click()
+        elem = self.driver.find_element_by_xpath("//ul//li[@style='color: #003784;cursor:pointer;'and contains(text(),'2019')]")
+        ActionChains(self.driver).move_to_element(elem).click().perform()
+        elem = self.driver.find_element_by_xpath("//div[@class='month']")
+        elem.click()
+        elem = self.driver.find_element_by_xpath("//ul[@class='time-list']//li[contains(.,'一月')]")
+        ActionChains(self.driver).move_to_element(elem).click().perform()
+        elem = self.driver.find_element_by_xpath("//div[@class='so'and contains(.,'元旦')]")
+        ActionChains(self.driver).move_to_element(elem).click().perform()
+
+        #select train type
+        elem = self.driver.find_element_by_xpath("//ul[@id='_ul_station_train_code']/li[1]")
+        ActionChains(self.driver).click(elem).perform()
+
+        #start query
+        elem = self.driver.find_element_by_id('query_ticket')
+        elem.click()
+
+    def order(self):
+        self.driver.implicitly_wait(5)
+        elemList = self.driver.find_elements_by_partial_link_text('预订')
+        elemList[0].click()
+
+        elem = self.driver.find_element_by_id('normalPassenger_0')
+        elem.click()
+
+
+test = buybuybuy()
+test.login()
+test.query()
+test.order()
